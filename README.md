@@ -115,6 +115,8 @@ python main.py
 - This is less secure than the official Duo Mobile app
 - Only use this when automated approval is acceptable for your threat model
 - The device registers as a Samsung Galaxy Tab S9+ running Duo Mobile 4.87.0
+- You are using this at your own risk, in no way is the author liable for anything that happens as a result of use.
+- For educational purposes only
 
 ## Requirements
 
