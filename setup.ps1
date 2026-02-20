@@ -1,4 +1,4 @@
-# ─────────────────────────────────────────────────────────────
+﻿# ─────────────────────────────────────────────────────────────
 # Duo Auto-Approver — Windows Setup Script
 #
 # Usage:
@@ -62,8 +62,10 @@ if (-not (Test-Path $ActivateScript)) {
 & $ActivateScript
 
 Write-Host "[*] Installing dependencies..."
+$ErrorActionPreference = "Continue"
 pip install --quiet --upgrade pip 2>$null
-pip install --quiet -r (Join-Path $ScriptDir "requirements.txt")
+pip install --quiet -r (Join-Path $ScriptDir "requirements.txt") 2>$null
+$ErrorActionPreference = "Stop"
 Write-Host "[+] Dependencies installed" -ForegroundColor Green
 
 # ── 3. Run activation if no config exists ─────────────────────

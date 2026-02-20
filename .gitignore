@@ -1,0 +1,11 @@
+# Credentials & secrets
+duo_config.json
+duo_key.pem
+duo_approver.log
+
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.pyc
