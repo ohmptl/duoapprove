@@ -445,67 +445,78 @@ def interactive_setup() -> DuoClient:
     """Walk the user through first-time setup."""
     client = DuoClient()
 
-    print()
-    print("=" * 60)
-    print("  Duo Auto-Approver — First-Time Setup")
-    print("=" * 60)
-    print()
-    print("  1) Activate with a new code (QR code / emailed link)")
-    print("  2) Import Auto-2FA browser extension export")
-    print("  3) Import existing Ruo response.json + key.pem")
-    print()
-    choice = input("Choose [1/2/3]: ").strip()
-
-    if choice == "1":
+    while True:
         print()
-        print("Get an activation code by adding a new device in your Duo")
-        print("device management portal.  Choose 'tablet' and either scan")
-        print("the QR code or email yourself the activation link.")
+        print("=" * 60)
+        print("  Duo Auto-Approver — First-Time Setup")
+        print("=" * 60)
         print()
-        print("The code looks like:  ABCDEFGHIJKLMNOPQRST-YXBpLTEyMzQ1Ng...")
-        print("Or paste the full URL: https://m-XXXX.duosecurity.com/…/CODE")
+        print("  1) Activate with a new code (QR code / emailed link)")
+        print("  2) Import Auto-2FA browser extension export")
+        print("  3) Import existing Ruo response.json + key.pem")
+        print("  q) Quit")
         print()
-        raw = input("Activation code or URL: ").strip()
-        if not raw:
-            print("No code provided. Exiting.")
+        try:
+            choice = input("Choose [1/2/3/q]: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            print("No input available. Exiting.")
             sys.exit(1)
-        client.activate(raw)
-        client.save_config()
-        print()
-        print("Activation complete! Credentials saved.")
 
-    elif choice == "2":
-        print()
-        print("In the Auto-2FA extension go to Settings → Export, and save")
-        print("the JSON file.  It must contain: pkey, akey, host, privateRaw.")
-        print()
-        path = input("Path to export JSON: ").strip()
-        if not path or not os.path.isfile(path):
-            print(f"File not found: {path}")
-            sys.exit(1)
-        client.import_auto2fa_export(path)
-        client.save_config()
-        print("Import complete! Credentials saved.")
+        if choice.lower() == "q":
+            print("Exiting.")
+            sys.exit(0)
 
-    elif choice == "3":
-        print()
-        resp_path = input("Path to response.json [response.json]: ").strip() or "response.json"
-        key_path = input("Path to key.pem [key.pem]: ").strip() or "key.pem"
-        if not os.path.isfile(resp_path):
-            print(f"File not found: {resp_path}")
-            sys.exit(1)
-        if not os.path.isfile(key_path):
-            print(f"File not found: {key_path}")
-            sys.exit(1)
-        client.import_ruo_files(resp_path, key_path)
-        client.save_config()
-        print("Import complete! Credentials saved.")
+        if choice == "1":
+            print()
+            print("Get an activation code by adding a new device in your Duo")
+            print("device management portal.  Choose 'tablet' and either scan")
+            print("the QR code or email yourself the activation link.")
+            print()
+            print("The code looks like:  ABCDEFGHIJKLMNOPQRST-YXBpLTEyMzQ1Ng...")
+            print("Or paste the full URL: https://m-XXXX.duosecurity.com/…/CODE")
+            print()
+            raw = input("Activation code or URL: ").strip()
+            if not raw:
+                print("No code provided. Try again.")
+                continue
+            client.activate(raw)
+            client.save_config()
+            print()
+            print("Activation complete! Credentials saved.")
+            return client
 
-    else:
-        print("Invalid choice.")
-        sys.exit(1)
+        elif choice == "2":
+            print()
+            print("In the Auto-2FA extension go to Settings → Export, and save")
+            print("the JSON file.  It must contain: pkey, akey, host, privateRaw.")
+            print()
+            path = input("Path to export JSON: ").strip()
+            if not path or not os.path.isfile(path):
+                print(f"File not found: {path}")
+                continue
+            client.import_auto2fa_export(path)
+            client.save_config()
+            print("Import complete! Credentials saved.")
+            return client
 
-    return client
+        elif choice == "3":
+            print()
+            resp_path = input("Path to response.json [response.json]: ").strip() or "response.json"
+            key_path = input("Path to key.pem [key.pem]: ").strip() or "key.pem"
+            if not os.path.isfile(resp_path):
+                print(f"File not found: {resp_path}")
+                continue
+            if not os.path.isfile(key_path):
+                print(f"File not found: {key_path}")
+                continue
+            client.import_ruo_files(resp_path, key_path)
+            client.save_config()
+            print("Import complete! Credentials saved.")
+            return client
+
+        else:
+            print(f"Invalid choice: {choice!r}. Please enter 1, 2, 3, or q.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
