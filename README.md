@@ -10,7 +10,7 @@ Based on [Ruo](https://github.com/falsidge/ruo) and [Auto-2FA](https://github.co
 
 **Linux:**
 ```bash
-chmod +x setup.sh && ./setup.sh
+curl -fsSL https://raw.githubusercontent.com/ohmptl/duoapprove/main/setup.sh | bash
 ```
 
 **Windows (PowerShell — run as admin):**

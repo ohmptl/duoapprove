@@ -2,21 +2,36 @@
 # ─────────────────────────────────────────────────────────────
 # Duo Auto-Approver — One-line server setup
 # 
-# Usage:
+# Usage (curl):
+#   curl -fsSL https://raw.githubusercontent.com/ohmptl/duoapprove/main/setup.sh | bash
+# 
+# Usage (local):
 #   chmod +x setup.sh && ./setup.sh
 #
 # What it does:
-#   1. Installs Python 3 + pip if missing
-#   2. Creates a venv and installs dependencies
-#   3. Runs the activation wizard
-#   4. Creates a systemd service for 24/7 operation
+#   1. Installs Python 3 + pip + git if missing
+#   2. Clones/updates the repo (when run via curl)
+#   3. Creates a venv and installs dependencies
+#   4. Runs the activation wizard
+#   5. Creates a systemd service for 24/7 operation
 # ─────────────────────────────────────────────────────────────
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-VENV_DIR="$SCRIPT_DIR/.venv"
+REPO_URL="https://github.com/ohmptl/duoapprove.git"
+INSTALL_DIR="/opt/duoapprove"
 SERVICE_NAME="duo-approver"
 PYTHON=""
+
+# Detect if running via curl-pipe (no real script file on disk)
+if [ -f "$0" ] && [ "$(basename "$0")" != "bash" ]; then
+    # Running as a local script — use the script's directory
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+else
+    # Running via curl | bash — clone repo to INSTALL_DIR
+    SCRIPT_DIR="$INSTALL_DIR"
+fi
+
+VENV_DIR="$SCRIPT_DIR/.venv"
 
 echo ""
 echo "=========================================="
@@ -66,6 +81,33 @@ else
     echo "[+] Installed $PYTHON ($($PYTHON --version))"
 fi
 
+# ── 1b. Install git if needed (for curl-pipe mode) ────────────
+if ! command -v git &>/dev/null; then
+    echo "[*] Installing git..."
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y -qq git
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y git
+    elif command -v yum &>/dev/null; then
+        sudo yum install -y git
+    elif command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm git
+    fi
+fi
+
+# ── 1c. Clone or update repo (curl-pipe mode) ─────────────────
+if [ "$SCRIPT_DIR" = "$INSTALL_DIR" ]; then
+    if [ -d "$INSTALL_DIR/.git" ]; then
+        echo "[*] Updating existing install at $INSTALL_DIR..."
+        git -C "$INSTALL_DIR" pull --quiet
+    else
+        echo "[*] Cloning repo to $INSTALL_DIR..."
+        sudo mkdir -p "$(dirname "$INSTALL_DIR")"
+        sudo git clone --quiet "$REPO_URL" "$INSTALL_DIR"
+        sudo chown -R "$(whoami):" "$INSTALL_DIR"
+    fi
+fi
+
 # ── 2. Create venv & install dependencies ─────────────────────
 echo ""
 if [ ! -d "$VENV_DIR" ]; then
@@ -73,10 +115,14 @@ if [ ! -d "$VENV_DIR" ]; then
     $PYTHON -m venv "$VENV_DIR"
 fi
 
-source "$VENV_DIR/bin/activate"
+# Use the venv's python/pip directly instead of 'source activate'
+# This is more reliable, especially when piped via curl
+VENV_PIP="$VENV_DIR/bin/pip"
+VENV_PYTHON="$VENV_DIR/bin/python"
+
 echo "[*] Installing dependencies..."
-pip install --quiet --upgrade pip
-pip install --quiet -r "$SCRIPT_DIR/requirements.txt"
+"$VENV_PIP" install --quiet --upgrade pip
+"$VENV_PIP" install --quiet -r "$SCRIPT_DIR/requirements.txt"
 echo "[+] Dependencies installed"
 
 # ── 3. Run activation if no config exists ─────────────────────
@@ -84,7 +130,7 @@ echo ""
 if [ ! -f "$SCRIPT_DIR/duo_config.json" ] || [ ! -f "$SCRIPT_DIR/duo_key.pem" ]; then
     echo "[*] No credentials found — running activation wizard..."
     echo ""
-    python "$SCRIPT_DIR/main.py"
+    "$VENV_PYTHON" "$SCRIPT_DIR/main.py"
     
     # Check if activation succeeded
     if [ ! -f "$SCRIPT_DIR/duo_config.json" ]; then
@@ -101,7 +147,6 @@ echo ""
 echo "[*] Setting up systemd service..."
 
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-PYTHON_BIN="$VENV_DIR/bin/python"
 
 sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
@@ -113,7 +158,7 @@ Wants=network-online.target
 Type=simple
 User=$(whoami)
 WorkingDirectory=$SCRIPT_DIR
-ExecStart=$PYTHON_BIN $SCRIPT_DIR/main.py
+ExecStart=$VENV_PYTHON $SCRIPT_DIR/main.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
