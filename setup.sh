@@ -130,9 +130,9 @@ echo ""
 if [ ! -f "$SCRIPT_DIR/duo_config.json" ] || [ ! -f "$SCRIPT_DIR/duo_key.pem" ]; then
     echo "[*] No credentials found — running activation wizard..."
     echo ""
-    # Redirect stdin from /dev/tty so interactive input works even
-    # when the script itself is piped in via curl | bash
-    "$VENV_PYTHON" "$SCRIPT_DIR/main.py" < /dev/tty
+    # --setup-only: run activation wizard then exit (don't start the loop)
+    # < /dev/tty: read interactive input from terminal, not the curl pipe
+    "$VENV_PYTHON" "$SCRIPT_DIR/main.py" --setup-only < /dev/tty
     
     # Check if activation succeeded
     if [ ! -f "$SCRIPT_DIR/duo_config.json" ]; then

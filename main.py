@@ -624,6 +624,12 @@ def main():
         default=POLL_INTERVAL,
         help=f"Seconds between polls (default: {POLL_INTERVAL})",
     )
+    parser.add_argument(
+        "--setup-only",
+        action="store_true",
+        default=False,
+        help="Run activation/import only, then exit (don't start the approval loop)",
+    )
     args = parser.parse_args()
 
     POLL_INTERVAL = args.poll_interval
@@ -658,6 +664,11 @@ def main():
             "OK" if client._rsa_key else "MISSING",
         )
         sys.exit(1)
+
+    # ── Setup-only mode: exit before starting the loop ────────────────
+    if args.setup_only:
+        log.info("Setup complete (--setup-only). Exiting.")
+        sys.exit(0)
 
     # ── Quick connectivity test ───────────────────────────────────────
     try:
